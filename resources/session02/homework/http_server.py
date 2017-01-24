@@ -1,5 +1,17 @@
 import socket
 import sys
+import os
+import mimetypes
+
+
+def doc_root():
+    """
+    This will set the path for the documents the web server is serving.
+    :return: The full path of the document root of the web server.
+    """
+    cwd = os.getcwd()
+    webroot = 'webroot'
+    return os.path.join(cwd,webroot)
 
 
 def response_ok(body=b"this is a pretty minimal response", mimetype=b"text/plain"):
@@ -22,7 +34,10 @@ def response_method_not_allowed():
 
 def response_not_found():
     """returns a 404 Not Found response"""
-    return b""
+    resp = []
+    resp.append("HTTP/1.1 404 Not Found")
+    resp.append("")
+    return "\r\n".join(resp).encode('utf8')
 
 
 def parse_request(request):
@@ -35,7 +50,25 @@ def parse_request(request):
 
 def resolve_uri(uri):
     """This method should return appropriate content and a mime type"""
-    return b"still broken", b"text/plain"
+    web = doc_root()
+    wroot = web + uri
+    try:
+        if os.path.isfile(wroot):
+            mimes = mimetypes.guess_type(wroot)
+            mime_type = str(mimes[0]).encode('utf8')
+            with open(wroot, 'rb') as f:
+                content = f.read()
+        elif os.path.isdir(wroot):
+            mime_type = b'text/plain'
+            #all_dirs_files = os.walk(wroot)
+            #dirs = []
+            #for d in all_dirs_files:
+            #    dirs.append(d)
+            c = os.listdir(wroot)
+            content = str(c).encode('utf8')
+    except NameError:
+        print(response_not_found())
+    return mime_type, content
 
 
 def server(log_buffer=sys.stderr):
